@@ -246,9 +246,13 @@ Completed so far:
 - Step 4 hardening done: Moved desktop sqlite path out of watched source directories to prevent dev-mode restarts on DB writes.
 - Phase 2 started: Implemented initial `sync-supabase` authenticated RPC adapter for `etui_push_changes` and `etui_pull_changes`.
 - Phase 2 started: Added first `sync-supabase` tests for authenticated push, pull decode, and unauthorized response handling.
+- Phase 2 update: `sync-supabase` now reads `SUPABASE_PUBLISHABLE_KEY` and supports loading Supabase config from `.env`.
+- Phase 2 update: `sync-supabase` no longer reads `SUPABASE_ACCESS_TOKEN` from env config and now receives access token only at runtime from authenticated user session.
+- Phase 2 update: Desktop Tauri backend now supports Supabase email/password sign-in, sign-out, and auth session status commands, and injects access token into `sync-supabase` provider at runtime.
+- Phase 2 update: Desktop unlock is now gated behind Supabase auth when configured, and sign-in selects/initializes a per-user local vault so first unlock after auth sets master password for that user scope.
 - Validation: `cargo check --workspace`, `cargo test --workspace`, and `bun run build` pass.
 
 Current status:
 
 - Foundation phase is complete and Phase 2 is in progress.
-- Next active task: add Supabase SQL schema + RLS policies and wire desktop sign-in/session handling so the app provides `SUPABASE_ACCESS_TOKEN` at runtime.
+- Next active task: add desktop background sync loop (push then pull), cursor persistence wiring, and conflict/retry handling around the Supabase adapter.

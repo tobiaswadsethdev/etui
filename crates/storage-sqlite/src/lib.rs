@@ -43,6 +43,20 @@ impl SqliteVaultRepository {
         Ok(vault_id)
     }
 
+    pub fn ensure_vault(&self, vault_id: VaultId) -> anyhow::Result<()> {
+        let connection = self.connection()?;
+        connection.execute(
+            "
+            INSERT INTO vaults (id, created_at)
+            VALUES (?1, ?2)
+            ON CONFLICT(id) DO NOTHING
+            ",
+            params![vault_id.to_string(), Utc::now().to_rfc3339()],
+        )?;
+
+        Ok(())
+    }
+
     fn initialize_schema(&self) -> anyhow::Result<()> {
         let connection = self.connection()?;
         connection.execute_batch(

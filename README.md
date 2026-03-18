@@ -12,7 +12,10 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
   - `crates/sync-supabase` (authenticated RPC adapter)
 - Desktop app scaffold and working local flow:
   - `apps/etui-desktop`
+  - Supabase-authenticated mode requires sign-in before vault unlock when configured
+  - first unlock after sign-in initializes a per-user local encrypted vault if none exists
   - unlock/lock vault, encrypted entry create/list/get/delete
+  - Supabase email/password sign-in and local auth session state in Tauri backend
   - backend-enforced idle lock timeout (5 minutes)
   - explicit password copy action with clipboard auto-clear timer (30 seconds)
 - Initial specs and threat model:
@@ -39,8 +42,9 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
 `sync-supabase` expects these environment variables:
 
 - `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+Environment variables can be provided through a local `.env` file (for example by copying `.env.example` to `.env` and filling values). The user access token is provided dynamically at runtime from authenticated user session state, not from env config.
 
 The adapter calls authenticated RPC endpoints:
 

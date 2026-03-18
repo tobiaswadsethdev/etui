@@ -752,6 +752,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenvy"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
+
+[[package]]
 name = "dpi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -857,8 +863,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "etui-core",
+ "reqwest 0.12.28",
  "serde",
+ "serde_json",
  "storage-sqlite",
+ "sync-supabase",
  "tauri",
  "tauri-build",
  "uuid",
@@ -3723,6 +3732,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "chrono",
+ "dotenvy",
  "etui-core",
  "mockito",
  "reqwest 0.12.28",

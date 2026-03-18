@@ -20,29 +20,24 @@ const PULL_RPC_PATH: &str = "/rest/v1/rpc/etui_pull_changes";
 #[derive(Debug, Clone)]
 pub struct SupabaseConfig {
     pub url: String,
-    pub anon_key: String,
-    pub access_token: String,
+    pub publishable_key: String,
     pub timeout: Duration,
 }
 
 impl SupabaseConfig {
     pub fn from_env() -> Result<Self, SupabaseSyncError> {
+        let _ = dotenvy::dotenv();
+
         let url = env::var("SUPABASE_URL").map_err(|_| SupabaseSyncError::MissingConfig {
             variable: "SUPABASE_URL",
         })?;
-        let anon_key =
-            env::var("SUPABASE_ANON_KEY").map_err(|_| SupabaseSyncError::MissingConfig {
-                variable: "SUPABASE_ANON_KEY",
+        let publishable_key =
+            env::var("SUPABASE_PUBLISHABLE_KEY").map_err(|_| SupabaseSyncError::MissingConfig {
+                variable: "SUPABASE_PUBLISHABLE_KEY",
             })?;
-        let access_token =
-            env::var("SUPABASE_ACCESS_TOKEN").map_err(|_| SupabaseSyncError::MissingConfig {
-                variable: "SUPABASE_ACCESS_TOKEN",
-            })?;
-
         Ok(Self {
             url,
-            anon_key,
-            access_token,
+            publishable_key,
             timeout: Duration::from_secs(15),
         })
     }
@@ -68,13 +63,15 @@ pub enum SupabaseSyncError {
     UnexpectedStatus { status: u16 },
     #[error("invalid sync response format")]
     InvalidResponse,
+    #[error("sync unauthorized: missing Supabase access token for authenticated user")]
+    MissingAccessToken,
 }
 
 pub struct SupabaseSyncProvider {
     client: Client,
     base_url: String,
-    anon_key: String,
-    access_token: String,
+    publishable_key: String,
+    access_token: Option<String>,
 }
 
 impl SupabaseSyncProvider {
@@ -87,14 +84,33 @@ impl SupabaseSyncProvider {
         Ok(Self {
             client,
             base_url: config.url.trim_end_matches('/').to_owned(),
-            anon_key: config.anon_key,
-            access_token: config.access_token,
+            publishable_key: config.publishable_key,
+            access_token: None,
         })
     }
 
     pub fn from_env() -> anyhow::Result<Self> {
         let config = SupabaseConfig::from_env()?;
         Self::new(config)
+    }
+
+    pub fn set_access_token(&mut self, access_token: impl Into<String>) {
+        self.access_token = Some(access_token.into());
+    }
+
+    pub fn with_access_token(mut self, access_token: impl Into<String>) -> Self {
+        self.set_access_token(access_token);
+        self
+    }
+
+    pub fn clear_access_token(&mut self) {
+        self.access_token = None;
+    }
+
+    fn access_token(&self) -> Result<&str, SupabaseSyncError> {
+        self.access_token
+            .as_deref()
+            .ok_or(SupabaseSyncError::MissingAccessToken)
     }
 
     fn rpc_url(&self, path: &str) -> String {
@@ -187,8 +203,8 @@ impl SyncProvider for SupabaseSyncProvider {
         let response = self
             .client
             .post(self.rpc_url(PUSH_RPC_PATH))
-            .header("apikey", &self.anon_key)
-            .bearer_auth(&self.access_token)
+            .header("apikey", &self.publishable_key)
+            .bearer_auth(self.access_token()?)
             .json(&request)
             .send()
             .await
@@ -211,8 +227,8 @@ impl SyncProvider for SupabaseSyncProvider {
         let response = self
             .client
             .post(self.rpc_url(PULL_RPC_PATH))
-            .header("apikey", &self.anon_key)
-            .bearer_auth(&self.access_token)
+            .header("apikey", &self.publishable_key)
+            .bearer_auth(self.access_token()?)
             .json(&request)
             .send()
             .await
@@ -308,8 +324,18 @@ mod tests {
     fn test_provider(url: String) -> SupabaseSyncProvider {
         let config = SupabaseConfig {
             url,
-            anon_key: "test-anon-key".to_owned(),
-            access_token: "test-access-token".to_owned(),
+            publishable_key: "test-publishable-key".to_owned(),
+            timeout: std::time::Duration::from_secs(5),
+        };
+        SupabaseSyncProvider::new(config)
+            .expect("provider initializes")
+            .with_access_token("test-access-token")
+    }
+
+    fn test_provider_without_token(url: String) -> SupabaseSyncProvider {
+        let config = SupabaseConfig {
+            url,
+            publishable_key: "test-publishable-key".to_owned(),
             timeout: std::time::Duration::from_secs(5),
         };
         SupabaseSyncProvider::new(config).expect("provider initializes")
@@ -335,7 +361,7 @@ mod tests {
 
         let mock = server
             .mock("POST", "/rest/v1/rpc/etui_push_changes")
-            .match_header("apikey", "test-anon-key")
+            .match_header("apikey", "test-publishable-key")
             .match_header("authorization", "Bearer test-access-token")
             .match_body(Matcher::PartialJson(serde_json::json!({
                 "p_vault_id": vault_id,
@@ -374,7 +400,7 @@ mod tests {
 
         let mock = server
             .mock("POST", "/rest/v1/rpc/etui_pull_changes")
-            .match_header("apikey", "test-anon-key")
+            .match_header("apikey", "test-publishable-key")
             .match_header("authorization", "Bearer test-access-token")
             .match_body(Matcher::PartialJson(serde_json::json!({
                 "p_vault_id": vault_id,
@@ -431,5 +457,18 @@ mod tests {
 
         assert!(error.to_string().contains("unauthorized"));
         mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_changes_without_access_token_fails_closed() {
+        let vault_id = Uuid::new_v4();
+        let provider = test_provider_without_token("http://localhost".to_owned());
+
+        let error = provider
+            .pull_changes(vault_id, None)
+            .await
+            .expect_err("missing access token returns error");
+
+        assert!(error.to_string().contains("missing Supabase access token"));
     }
 }

@@ -8,6 +8,14 @@ type SessionInfo = {
   entryCount: number;
 };
 
+type AuthSessionStatus = {
+  configured: boolean;
+  authenticated: boolean;
+  userId: string | null;
+  email: string | null;
+  expiresInSeconds: number | null;
+};
+
 type EntrySummary = {
   id: string;
   title: string;
@@ -47,8 +55,12 @@ function App() {
   const [selectedEntry, setSelectedEntry] = useState<EntryDetail | null>(null);
   const [newEntry, setNewEntry] = useState<NewEntryInput>(EMPTY_ENTRY);
   const [busy, setBusy] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copyNotice, setCopyNotice] = useState<string | null>(null);
+  const [authStatus, setAuthStatus] = useState<AuthSessionStatus | null>(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
   const clipboardClearTimer = useRef<number | null>(null);
 
   function clearClipboardTimer() {
@@ -79,6 +91,14 @@ function App() {
   }
 
   useEffect(() => {
+    void invoke<AuthSessionStatus>("auth_session_status")
+      .then((status) => {
+        setAuthStatus(status);
+      })
+      .catch((statusError) => {
+        setError(String(statusError));
+      });
+
     return () => {
       clearClipboardTimer();
     };
@@ -90,6 +110,21 @@ function App() {
     }
     return `${entries.length} entries loaded`;
   }, [entries.length, session]);
+
+  const authExpiresText = useMemo(() => {
+    if (!authStatus?.authenticated || authStatus.expiresInSeconds === null) {
+      return null;
+    }
+
+    const wholeMinutes = Math.floor(authStatus.expiresInSeconds / 60);
+    if (wholeMinutes < 1) {
+      return "expires in under 1 minute";
+    }
+
+    return `expires in about ${wholeMinutes} minute${wholeMinutes === 1 ? "" : "s"}`;
+  }, [authStatus]);
+
+  const canUnlockVault = !authStatus?.configured || authStatus.authenticated;
 
   async function refreshEntries() {
     const nextEntries = await invoke<EntrySummary[]>("list_entries");
@@ -114,6 +149,40 @@ function App() {
       handleCommandError(unlockError);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleAuthSignIn(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthBusy(true);
+    setError(null);
+
+    try {
+      const status = await invoke<AuthSessionStatus>("auth_sign_in", {
+        email: authEmail,
+        password: authPassword,
+      });
+      setAuthStatus(status);
+      setAuthPassword("");
+    } catch (signInError) {
+      handleCommandError(signInError);
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleAuthSignOut() {
+    setAuthBusy(true);
+    setError(null);
+
+    try {
+      const status = await invoke<AuthSessionStatus>("auth_sign_out");
+      setAuthStatus(status);
+      setAuthPassword("");
+    } catch (signOutError) {
+      handleCommandError(signOutError);
+    } finally {
+      setAuthBusy(false);
     }
   }
 
@@ -223,29 +292,86 @@ function App() {
   if (!session) {
     return (
       <main className="unlock-shell">
-        <form className="panel" onSubmit={handleUnlock}>
+        <section className="panel">
           <h1>etui Desktop</h1>
           <p>Unlock your local encrypted vault.</p>
 
-          <label className="field-label" htmlFor="master-password">
-            Master password
-          </label>
-          <input
-            id="master-password"
-            className="text-input"
-            type="password"
-            value={masterPassword}
-            onChange={(event) => setMasterPassword(event.target.value)}
-            autoComplete="current-password"
-            placeholder="Enter master password"
-            required
-          />
+          {authStatus?.configured ? (
+            <>
+              <h2>Supabase Account</h2>
+              {authStatus.authenticated ? (
+                <>
+                  <p>
+                    Signed in as <strong>{authStatus.email ?? authStatus.userId ?? "user"}</strong>
+                    {authExpiresText ? ` (${authExpiresText})` : ""}.
+                  </p>
+                  <button className="ghost-btn" type="button" onClick={handleAuthSignOut} disabled={authBusy}>
+                    {authBusy ? "Signing out..." : "Sign Out"}
+                  </button>
+                </>
+              ) : (
+                <form className="stack-form" onSubmit={handleAuthSignIn}>
+                  <label className="field-label" htmlFor="auth-email">
+                    Email
+                  </label>
+                  <input
+                    id="auth-email"
+                    className="text-input"
+                    type="email"
+                    autoComplete="email"
+                    value={authEmail}
+                    onChange={(event) => setAuthEmail(event.target.value)}
+                    required
+                  />
 
-          <button className="primary-btn" type="submit" disabled={busy}>
-            {busy ? "Unlocking..." : "Unlock"}
-          </button>
+                  <label className="field-label" htmlFor="auth-password">
+                    Password
+                  </label>
+                  <input
+                    id="auth-password"
+                    className="text-input"
+                    type="password"
+                    autoComplete="current-password"
+                    value={authPassword}
+                    onChange={(event) => setAuthPassword(event.target.value)}
+                    required
+                  />
+
+                  <button className="ghost-btn" type="submit" disabled={authBusy}>
+                    {authBusy ? "Signing in..." : "Sign In to Supabase"}
+                  </button>
+                </form>
+              )}
+            </>
+          ) : (
+            <p>Supabase sync is not configured in environment.</p>
+          )}
+
+          {canUnlockVault ? (
+            <form className="stack-form" onSubmit={handleUnlock}>
+              <label className="field-label" htmlFor="master-password">
+                Master password
+              </label>
+              <input
+                id="master-password"
+                className="text-input"
+                type="password"
+                value={masterPassword}
+                onChange={(event) => setMasterPassword(event.target.value)}
+                autoComplete="current-password"
+                placeholder="Enter master password"
+                required
+              />
+
+              <button className="primary-btn" type="submit" disabled={busy}>
+                {busy ? "Unlocking..." : "Unlock"}
+              </button>
+            </form>
+          ) : (
+            <p>Sign in first to access your vault.</p>
+          )}
           {error ? <p className="error-text">{error}</p> : null}
-        </form>
+        </section>
       </main>
     );
   }
@@ -256,10 +382,29 @@ function App() {
         <div>
           <h1>etui Desktop</h1>
           <p>{entryCountText}</p>
+          {authStatus?.configured ? (
+            authStatus.authenticated ? (
+              <p>
+                Sync user: {authStatus.email ?? authStatus.userId ?? "authenticated"}
+                {authExpiresText ? ` (${authExpiresText})` : ""}
+              </p>
+            ) : (
+              <p>Not signed in to Supabase.</p>
+            )
+          ) : (
+            <p>Supabase sync is not configured.</p>
+          )}
         </div>
-        <button className="ghost-btn" type="button" onClick={handleLock} disabled={busy}>
-          Lock
-        </button>
+        <div className="header-actions">
+          <button className="ghost-btn" type="button" onClick={handleLock} disabled={busy}>
+            Lock
+          </button>
+          {authStatus?.configured && authStatus.authenticated ? (
+            <button className="ghost-btn" type="button" onClick={handleAuthSignOut} disabled={authBusy}>
+              {authBusy ? "Signing out..." : "Sign Out"}
+            </button>
+          ) : null}
+        </div>
       </section>
 
       <section className="workspace-grid">
