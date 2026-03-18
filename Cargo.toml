@@ -1,9 +1,9 @@
 [workspace]
 members = [
-  "crates/vault-core",
+  "crates/etui-core",
   "crates/storage-sqlite",
   "crates/sync-supabase",
-  "apps/desktop-tauri/src-tauri",
+  "apps/etui-desktop/src-tauri",
 ]
 resolver = "2"
 

@@ -224,7 +224,7 @@ function App() {
     return (
       <main className="unlock-shell">
         <form className="panel" onSubmit={handleUnlock}>
-          <h1>Vault Desktop</h1>
+          <h1>etui Desktop</h1>
           <p>Unlock your local encrypted vault.</p>
 
           <label className="field-label" htmlFor="master-password">
@@ -254,7 +254,7 @@ function App() {
     <main className="workspace-shell">
       <section className="workspace-header">
         <div>
-          <h1>Vault Desktop</h1>
+          <h1>etui Desktop</h1>
           <p>{entryCountText}</p>
         </div>
         <button className="ghost-btn" type="button" onClick={handleLock} disabled={busy}>

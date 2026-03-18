@@ -19,7 +19,7 @@ The shared source of truth is a Rust core and stable cross-client specs.
 
 Use ports/adapters (hexagonal) architecture:
 
-- `vault-core` defines domain models, crypto workflows, sync logic, and interfaces
+- `etui-core` defines domain models, crypto workflows, sync logic, and interfaces
 - Storage and sync are plugin adapters behind interfaces
 - UI clients never call Supabase directly; they use core-defined boundaries
 
@@ -45,13 +45,13 @@ Local-first on every client:
 
 ```text
 crates/
-  vault-core/
-  vault-cli/                # phase 3+
-  vault-tui/                # phase 3+
+  etui-core/
+  etui-cli/                 # phase 3+
+  etui-tui/                 # phase 3+
   storage-sqlite/
   sync-supabase/
 apps/
-  desktop-tauri/
+  etui-desktop/
   ios-swiftui/              # phase 4+
   android-kotlin/           # phase 4+
   browser-extension/        # phase 4+
@@ -64,7 +64,7 @@ docs/
 
 ## 4) Core Interfaces (Initial)
 
-Define in `crates/vault-core`:
+Define in `crates/etui-core`:
 
 - `VaultRepository`
   - create/open vault
@@ -127,7 +127,7 @@ Non-sensitive index fields should be minimal and optional.
 
 ### Phase 1 - Core + Local Desktop MVP
 
-1. Implement `vault-core` domain and crypto primitives
+1. Implement `etui-core` domain and crypto primitives
 2. Implement `storage-sqlite` adapter
 3. Build desktop Tauri app with minimal UI:
    - unlock/create vault
@@ -156,8 +156,8 @@ Exit criteria:
 
 ### Phase 3 - Secondary Rust Clients
 
-1. Implement `vault-cli`
-2. Implement `vault-tui`
+1. Implement `etui-cli`
+2. Implement `etui-tui`
 3. Reuse core + adapters; no business logic in clients
 
 Exit criteria:
@@ -212,9 +212,9 @@ All `VaultRepository` and `SyncProvider` implementations must pass a common test
 
 ## 10) Immediate Next Actions
 
-1. Scaffold Rust workspace (`vault-core`, `storage-sqlite`, `sync-supabase`, `apps/desktop-tauri`)
+1. Scaffold Rust workspace (`etui-core`, `storage-sqlite`, `sync-supabase`, `apps/etui-desktop`)
 2. Author the 3 spec docs in `docs/`
-3. Implement minimal `vault-core` API and first unit tests
+3. Implement minimal `etui-core` API and first unit tests
 4. Build desktop unlock + CRUD flow against local SQLite only
 
 ## 11) Progress Update (2026-03-18)
@@ -227,17 +227,17 @@ Completed so far:
 - Step 2 done: Added `docs/spec-vault-format.md`.
 - Step 2 done: Added `docs/spec-sync-contract.md`.
 - Step 2 done: Added `docs/threat-model.md`.
-- Step 3 done: Added minimal `vault-core` application API in `crates/vault-core/src/service.rs`.
-- Step 3 done: Added first `vault-core` unit tests for CRUD flow, input validation, and sync cursor persistence.
-- Validation: `cargo test -p vault-core` passes and `cargo check --workspace` passes.
+- Step 3 done: Added minimal `etui-core` application API in `crates/etui-core/src/service.rs`.
+- Step 3 done: Added first `etui-core` unit tests for CRUD flow, input validation, and sync cursor persistence.
+- Validation: `cargo test -p etui-core` passes and `cargo check --workspace` passes.
 - Step 4 done: Implemented a functional `storage-sqlite` adapter with schema initialization, vault bootstrap, entry CRUD, and sync cursor persistence.
-- Step 4 done: Connected desktop Tauri backend commands to `vault-core` + SQLite repository.
+- Step 4 done: Connected desktop Tauri backend commands to `etui-core` + SQLite repository.
 - Step 4 done: Replaced placeholder frontend with unlock/list/create/get/delete flow wired through Tauri invoke commands.
-- Validation: `cargo check --workspace`, `cargo test -p vault-core`, and `bun run build` pass.
+- Validation: `cargo check --workspace`, `cargo test -p etui-core`, and `bun run build` pass.
 - Step 4 enhancement done: Added real cryptography flow (Argon2id + XChaCha20-Poly1305) for entry payload encryption/decryption.
 - Step 4 enhancement done: Added persistent vault crypto metadata storage in SQLite with password verifier.
 - Step 4 enhancement done: Updated desktop UI from base64 payload input to real credential fields (title, username, password, notes).
-- Validation: `cargo check --workspace`, `cargo test -p vault-core` (5 tests), and `bun run build` pass.
+- Validation: `cargo check --workspace`, `cargo test -p etui-core` (5 tests), and `bun run build` pass.
 - Step 4 hardening done: Added `storage-sqlite` integration/contract coverage for entry CRUD semantics, entry ordering, sync cursor round-trip, default vault stability, and crypto metadata persistence.
 - Step 4 hardening done: Implemented desktop lock timeout enforcement in Tauri backend session handling (5-minute idle timeout).
 - Step 4 hardening done: Implemented explicit password copy action in desktop UI with 30-second clipboard auto-clear timer.

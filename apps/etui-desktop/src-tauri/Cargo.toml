@@ -1,5 +1,5 @@
 [package]
-name = "desktop-tauri"
+name = "etui-desktop"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,7 +13,7 @@ serde.workspace = true
 tauri = { version = "2.8.5", features = [] }
 storage-sqlite = { path = "../../../crates/storage-sqlite" }
 uuid.workspace = true
-vault-core = { path = "../../../crates/vault-core" }
+etui-core = { path = "../../../crates/etui-core" }
 
 [package.metadata.tauri]
 

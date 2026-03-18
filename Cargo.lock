@@ -634,19 +634,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "desktop-tauri"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "storage-sqlite",
- "tauri",
- "tauri-build",
- "uuid",
- "vault-core",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -820,6 +807,36 @@ checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "etui-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "async-trait",
+ "chacha20poly1305",
+ "chrono",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "etui-desktop"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "etui-core",
+ "serde",
+ "storage-sqlite",
+ "tauri",
+ "tauri-build",
+ "uuid",
 ]
 
 [[package]]
@@ -3292,11 +3309,11 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "etui-core",
  "rusqlite",
  "tempfile",
  "tokio",
  "uuid",
- "vault-core",
 ]
 
 [[package]]
@@ -3398,7 +3415,7 @@ name = "sync-supabase"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "vault-core",
+ "etui-core",
 ]
 
 [[package]]
@@ -4182,23 +4199,6 @@ dependencies = [
  "js-sys",
  "serde_core",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "vault-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argon2",
- "async-trait",
- "chacha20poly1305",
- "chrono",
- "rand 0.8.5",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "uuid",
 ]
 
 [[package]]

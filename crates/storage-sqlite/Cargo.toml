@@ -10,7 +10,7 @@ async-trait.workspace = true
 chrono.workspace = true
 rusqlite = { version = "0.33", features = ["bundled"] }
 uuid.workspace = true
-vault-core = { path = "../vault-core" }
+etui-core = { path = "../etui-core" }
 
 [dev-dependencies]
 tempfile = "3.13"

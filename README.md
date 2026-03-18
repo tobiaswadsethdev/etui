@@ -7,11 +7,11 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
 ## What exists today
 
 - Rust workspace with core and adapters:
-  - `crates/vault-core`
+  - `crates/etui-core`
   - `crates/storage-sqlite`
   - `crates/sync-supabase` (scaffold)
 - Desktop app scaffold and working local flow:
-  - `apps/desktop-tauri`
+  - `apps/etui-desktop`
   - unlock/lock vault, encrypted entry create/list/get/delete
   - backend-enforced idle lock timeout (5 minutes)
   - explicit password copy action with clipboard auto-clear timer (30 seconds)
@@ -35,9 +35,9 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
 ```text
 .
 ├── apps/
-│   └── desktop-tauri/
+│   └── etui-desktop/
 ├── crates/
-│   ├── vault-core/
+│   ├── etui-core/
 │   ├── storage-sqlite/
 │   └── sync-supabase/
 ├── docs/
@@ -59,7 +59,7 @@ On Linux, if Tauri checks fail, verify packages like `webkit2gtk`, `libsoup`, `g
 1) Install frontend dependencies:
 
 ```bash
-cd apps/desktop-tauri
+cd apps/etui-desktop
 bun install
 ```
 
@@ -73,14 +73,14 @@ cargo test --workspace
 3) Build desktop frontend:
 
 ```bash
-cd apps/desktop-tauri
+cd apps/etui-desktop
 bun run build
 ```
 
 4) Run desktop app in dev mode:
 
 ```bash
-cd apps/desktop-tauri
+cd apps/etui-desktop
 bun run tauri dev
 ```
 
@@ -91,5 +91,5 @@ Active implementation milestones and progress are tracked in `PLAN.md`.
 ## Notes for contributors and AI agents
 
 - Read `AGENTS.md` before making changes.
-- Keep all business logic and security-sensitive behavior in `vault-core`.
+- Keep all business logic and security-sensitive behavior in `etui-core`.
 - Update specs when format/sync behavior changes.

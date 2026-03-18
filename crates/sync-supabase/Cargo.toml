@@ -6,7 +6,7 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-vault-core = { path = "../vault-core" }
+etui-core = { path = "../etui-core" }
 
 [lints]
 workspace = true

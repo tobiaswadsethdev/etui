@@ -15,7 +15,7 @@ Goals:
 
 - Top-level field: `schema_version` (integer)
 - Initial version in this spec: `1`
-- Any breaking format change requires a new schema version and a migration in `vault-core`
+- Any breaking format change requires a new schema version and a migration in `etui-core`
 
 Rules:
 
@@ -124,7 +124,7 @@ Record envelope example:
 
 ## 7. Migration policy
 
-- Migrations live in `vault-core` and are covered by golden tests.
+- Migrations live in `etui-core` and are covered by golden tests.
 - Migration function signature conceptually: `vN -> vN+1`.
 - No in-place destructive migration without backup capability.
 - Exported backups include explicit `schema_version`.

@@ -8,9 +8,9 @@ use serde::Serialize;
 use storage_sqlite::SqliteVaultRepository;
 use tauri::State;
 use uuid::Uuid;
-use vault_core::crypto::{initialize_crypto_metadata, unlock_with_password, UnlockedVault};
-use vault_core::model::EntryPayload;
-use vault_core::service::VaultService;
+use etui_core::crypto::{initialize_crypto_metadata, unlock_with_password, UnlockedVault};
+use etui_core::model::EntryPayload;
+use etui_core::service::VaultService;
 
 const LOCK_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
@@ -271,7 +271,7 @@ fn has_timed_out(last_activity: SystemTime, now: SystemTime, timeout: Duration) 
 
 fn database_path() -> anyhow::Result<PathBuf> {
     let cwd = std::env::current_dir()?;
-    Ok(cwd.join("vault-local.sqlite3"))
+    Ok(cwd.join("etui-local.sqlite3"))
 }
 
 fn main() {

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "desktop-tauri",
+      "name": "etui-desktop",
       "dependencies": {
         "@tauri-apps/api": "^2.8.0",
         "react": "^19.1.0",

@@ -6,10 +6,10 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
 use uuid::Uuid;
-use vault_core::crypto::CryptoMetadata;
-use vault_core::model::{Entry, VaultId};
-use vault_core::ports::{NewEntry, VaultRepository};
-use vault_core::sync::SyncCursor;
+use etui_core::crypto::CryptoMetadata;
+use etui_core::model::{Entry, VaultId};
+use etui_core::ports::{NewEntry, VaultRepository};
+use etui_core::sync::SyncCursor;
 
 pub struct SqliteVaultRepository {
     connection: Mutex<Connection>,
@@ -180,7 +180,7 @@ impl SqliteVaultRepository {
                 })?;
 
                 Ok(Some(CryptoMetadata {
-                    kdf: vault_core::crypto::KdfParams {
+                    kdf: etui_core::crypto::KdfParams {
                         memory_kib,
                         iterations,
                         parallelism,
@@ -389,9 +389,9 @@ mod tests {
 
     use tempfile::TempDir;
     use tokio::time::{sleep, Duration};
-    use vault_core::crypto::initialize_crypto_metadata;
-    use vault_core::ports::VaultRepository;
-    use vault_core::sync::SyncCursor;
+    use etui_core::crypto::initialize_crypto_metadata;
+    use etui_core::ports::VaultRepository;
+    use etui_core::sync::SyncCursor;
 
     use super::SqliteVaultRepository;
 
@@ -412,7 +412,7 @@ mod tests {
         let created = repository
             .upsert_entry(
                 vault_id,
-                vault_core::ports::NewEntry {
+                etui_core::ports::NewEntry {
                     ciphertext: vec![1, 2, 3],
                     nonce: [11; 24],
                 },
@@ -425,7 +425,7 @@ mod tests {
         let newer = repository
             .upsert_entry(
                 vault_id,
-                vault_core::ports::NewEntry {
+                etui_core::ports::NewEntry {
                     ciphertext: vec![4, 5, 6],
                     nonce: [22; 24],
                 },

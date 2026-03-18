@@ -4,9 +4,9 @@
 
 This repository is a cross-platform password manager with:
 
-- Rust core as source of truth (`crates/vault-core`)
+- Rust core as source of truth (`crates/etui-core`)
 - Adapter crates for storage and sync (`crates/storage-sqlite`, `crates/sync-supabase`)
-- Desktop client in Tauri (`apps/desktop-tauri`)
+- Desktop client in Tauri (`apps/etui-desktop`)
 - Future native clients: iOS (SwiftUI), Android (Kotlin), CLI/TUI, standalone browser extension
 
 Architecture is local-first and zero-knowledge.
@@ -25,7 +25,7 @@ Read first:
    - Backend stores ciphertext + minimal metadata only.
 
 2. **Keep logic in Rust core**
-   - Business rules, crypto, migrations, and merge behavior belong in `vault-core`.
+   - Business rules, crypto, migrations, and merge behavior belong in `etui-core`.
    - UI and adapters should stay thin.
 
 3. **Respect ports/adapters boundaries**
@@ -39,7 +39,7 @@ Read first:
 
 ## Repository Conventions
 
-- JS package manager: **bun** (for `apps/desktop-tauri`)
+- JS package manager: **bun** (for `apps/etui-desktop`)
 - Rust toolchain: stable (see `rust-toolchain.toml`)
 - Avoid introducing new frameworks unless requested.
 - Keep edits minimal and focused; preserve existing structure.
@@ -58,9 +58,9 @@ Read first:
 When implementing features:
 
 1. Update or validate specs first if format/sync/security behavior changes.
-2. Implement in `vault-core` before client code.
+2. Implement in `etui-core` before client code.
 3. Add/adjust adapter behavior only through core interfaces.
-4. Keep desktop-specific behavior under `apps/desktop-tauri`.
+4. Keep desktop-specific behavior under `apps/etui-desktop`.
 5. Add tests with every behavior change.
 
 ## Testing and Validation
@@ -70,7 +70,7 @@ Preferred validation sequence:
 1. `cargo check --workspace`
 2. `cargo test --workspace`
 3. `bun install` (if needed)
-4. `bun run build` in `apps/desktop-tauri`
+4. `bun run build` in `apps/etui-desktop`
 
 If Linux Tauri build fails, verify system deps (webkit2gtk, libsoup, gtk/cairo/pango stack).
 

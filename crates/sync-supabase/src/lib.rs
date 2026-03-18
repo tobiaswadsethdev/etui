@@ -1,4 +1,4 @@
-use vault_core::ports::SyncProvider;
+use etui_core::ports::SyncProvider;
 
 pub struct SupabaseSyncProvider;
 
