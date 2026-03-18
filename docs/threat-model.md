@@ -67,9 +67,9 @@ Out of scope for v1:
 ### T4: Local data leakage from clipboard
 
 - Mitigations:
-  - clipboard auto-clear timer
   - explicit user action for copy
   - avoid automatic copy on reveal
+  - no background clipboard writes; copy occurs only on explicit command
 
 ### T5: Sync replay or duplicate submissions
 

@@ -5,6 +5,7 @@
 /.cache
 /.turbo
 /apps/etui-desktop/src-tauri/gen
+/apps/etui-desktop/src-tauri/etui-local.sqlite3
 /apps/etui-desktop/.vite
 /etui-local.sqlite3
 *.sqlite-shm

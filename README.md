@@ -17,7 +17,7 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
   - unlock/lock vault, encrypted entry create/list/get/delete
   - Supabase email/password sign-in and local auth session state in Tauri backend
   - backend-enforced idle lock timeout (5 minutes)
-  - explicit password copy action with clipboard auto-clear timer (30 seconds)
+  - explicit password copy action with optional show/hide password viewing in UI
 - Initial specs and threat model:
   - `docs/spec-vault-format.md`
   - `docs/spec-sync-contract.md`
@@ -33,7 +33,7 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
 - Master password never leaves the device.
 - KDF: Argon2id (per-vault salt + stored params).
 - Encryption: XChaCha20-Poly1305 per encrypted payload.
-- GUI session lock timeout and clipboard auto-clear behavior are enforced.
+- GUI session lock timeout behavior is enforced.
 - Backend/sync is intended to store ciphertext + minimal metadata only.
 - Supabase Auth is used for user identity and API authorization; auth is separate from encryption keys.
 

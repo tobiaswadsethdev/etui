@@ -39,7 +39,7 @@ Network-authoritative with encrypted client-side data:
 - KDF: Argon2id with per-vault random salt and versioned parameters
 - Encryption: XChaCha20-Poly1305 (AEAD)
 - Per-entry nonce/IV, secure random generation
-- Lock timeout and clipboard auto-clear in all GUI clients
+- Lock timeout in all GUI clients
 - Versioned vault format + migration engine
 
 ## 3) Repository Layout (Target)
@@ -134,7 +134,7 @@ Non-sensitive index fields should be minimal and optional.
    - unlock/create vault
    - list/search entries
    - create/edit/delete entry
-   - copy secret + clipboard clear timer
+   - copy secret + password reveal toggle
 4. Implement lock timeout and session state
 5. Add unit and integration tests
 
@@ -242,7 +242,7 @@ Completed so far:
 - Validation: `cargo check --workspace`, `cargo test -p etui-core` (5 tests), and `bun run build` pass.
 - Step 4 hardening done: Added `storage-sqlite` integration/contract coverage for entry CRUD semantics, entry ordering, sync cursor round-trip, default vault stability, and crypto metadata persistence.
 - Step 4 hardening done: Implemented desktop lock timeout enforcement in Tauri backend session handling (5-minute idle timeout).
-- Step 4 hardening done: Implemented explicit password copy action in desktop UI with 30-second clipboard auto-clear timer.
+- Step 4 hardening done: Implemented explicit password copy action in desktop UI with password reveal toggle.
 - Step 4 hardening done: Moved desktop sqlite path out of watched source directories to prevent dev-mode restarts on DB writes.
 - Phase 2 started: Implemented initial `sync-supabase` authenticated RPC adapter for `etui_push_changes` and `etui_pull_changes`.
 - Phase 2 started: Added first `sync-supabase` tests for authenticated push, pull decode, and unauthorized response handling.
