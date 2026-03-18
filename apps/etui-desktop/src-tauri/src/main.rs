@@ -1,16 +1,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
+use anyhow::Context;
+use etui_core::crypto::{initialize_crypto_metadata, unlock_with_password, UnlockedVault};
+use etui_core::model::EntryPayload;
+use etui_core::service::VaultService;
 use serde::Serialize;
 use storage_sqlite::SqliteVaultRepository;
 use tauri::State;
 use uuid::Uuid;
-use etui_core::crypto::{initialize_crypto_metadata, unlock_with_password, UnlockedVault};
-use etui_core::model::EntryPayload;
-use etui_core::service::VaultService;
 
 const LOCK_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
@@ -270,8 +271,83 @@ fn has_timed_out(last_activity: SystemTime, now: SystemTime, timeout: Duration) 
 }
 
 fn database_path() -> anyhow::Result<PathBuf> {
+    if let Some(path) = std::env::var_os("ETUI_DATABASE_PATH") {
+        return Ok(PathBuf::from(path));
+    }
+
+    let app_data_dir = app_data_dir()?;
+    std::fs::create_dir_all(&app_data_dir).with_context(|| {
+        format!(
+            "failed to create application data directory at {}",
+            app_data_dir.display()
+        )
+    })?;
+
+    let database_path = app_data_dir.join("etui-local.sqlite3");
+    migrate_legacy_database(&database_path)?;
+    Ok(database_path)
+}
+
+fn app_data_dir() -> anyhow::Result<PathBuf> {
+    if cfg!(target_os = "windows") {
+        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+            return Ok(PathBuf::from(local_app_data).join("etui"));
+        }
+    }
+
+    if cfg!(target_os = "macos") {
+        if let Some(home) = std::env::var_os("HOME") {
+            return Ok(PathBuf::from(home)
+                .join("Library")
+                .join("Application Support")
+                .join("etui"));
+        }
+    }
+
+    if let Some(xdg_data_home) = std::env::var_os("XDG_DATA_HOME") {
+        return Ok(PathBuf::from(xdg_data_home).join("etui"));
+    }
+
+    if let Some(home) = std::env::var_os("HOME") {
+        return Ok(PathBuf::from(home)
+            .join(".local")
+            .join("share")
+            .join("etui"));
+    }
+
     let cwd = std::env::current_dir()?;
-    Ok(cwd.join("etui-local.sqlite3"))
+    Ok(cwd.join(".etui"))
+}
+
+fn migrate_legacy_database(database_path: &Path) -> anyhow::Result<()> {
+    if database_path.exists() {
+        return Ok(());
+    }
+
+    let legacy_path = std::env::current_dir()?.join("etui-local.sqlite3");
+    if !legacy_path.exists() {
+        return Ok(());
+    }
+
+    match std::fs::rename(&legacy_path, database_path) {
+        Ok(()) => Ok(()),
+        Err(_) => {
+            std::fs::copy(&legacy_path, database_path).with_context(|| {
+                format!(
+                    "failed to migrate legacy database from {} to {}",
+                    legacy_path.display(),
+                    database_path.display()
+                )
+            })?;
+            std::fs::remove_file(&legacy_path).with_context(|| {
+                format!(
+                    "failed to remove legacy database after migration at {}",
+                    legacy_path.display()
+                )
+            })?;
+            Ok(())
+        }
+    }
 }
 
 fn main() {

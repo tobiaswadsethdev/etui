@@ -4,12 +4,12 @@ use std::sync::{Mutex, MutexGuard};
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection};
-use uuid::Uuid;
 use etui_core::crypto::CryptoMetadata;
 use etui_core::model::{Entry, VaultId};
 use etui_core::ports::{NewEntry, VaultRepository};
 use etui_core::sync::SyncCursor;
+use rusqlite::{params, Connection};
+use uuid::Uuid;
 
 pub struct SqliteVaultRepository {
     connection: Mutex<Connection>,
@@ -387,11 +387,11 @@ impl VaultRepository for SqliteVaultRepository {
 mod tests {
     use std::path::PathBuf;
 
-    use tempfile::TempDir;
-    use tokio::time::{sleep, Duration};
     use etui_core::crypto::initialize_crypto_metadata;
     use etui_core::ports::VaultRepository;
     use etui_core::sync::SyncCursor;
+    use tempfile::TempDir;
+    use tokio::time::{sleep, Duration};
 
     use super::SqliteVaultRepository;
 

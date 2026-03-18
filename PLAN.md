@@ -2,7 +2,7 @@
 
 ## 1) Product Direction
 
-Build a local-first, zero-knowledge password manager with native UIs per client:
+Build an authenticated, zero-knowledge password manager with native UIs per client:
 
 - Desktop: Tauri app (initial client)
 - iOS: SwiftUI app (future)
@@ -25,12 +25,13 @@ Use ports/adapters (hexagonal) architecture:
 
 ### 2.2 Sync topology
 
-Local-first on every client:
+Network-authoritative with encrypted client-side data:
 
-- Reads/writes happen against local encrypted store immediately
-- Background sync pushes/pulls encrypted changes
-- Backend stores ciphertext + minimal metadata only
-- Deterministic conflict resolution in core
+- Supabase Auth session identifies the user for every sync request
+- Backend stores ciphertext + minimal metadata only, scoped per user
+- Clients use authenticated push/pull against Supabase RPC endpoints
+- Optional local cache can exist for performance, but sync backend is source of truth for v1
+- Deterministic conflict resolution remains in core
 
 ### 2.3 Security model
 
@@ -142,17 +143,18 @@ Exit criteria:
 - Fully functional offline desktop vault
 - No plaintext secret persistence
 
-### Phase 2 - Supabase Sync Adapter
+### Phase 2 - Supabase Auth + Sync Adapter
 
 1. Implement `sync-supabase` adapter behind `SyncProvider`
-2. Add background sync loop in desktop app
-3. Handle conflicts and retries
-4. Add observability/logging (without leaking secrets)
+2. Add Supabase Auth flow in desktop app (sign in/session handling)
+3. Add background sync loop in desktop app
+4. Handle conflicts and retries
+5. Add observability/logging (without leaking secrets)
 
 Exit criteria:
 
-- Two desktop clients can converge via sync
-- Offline edits reconcile correctly
+- Two desktop clients authenticated as the same user can converge via sync
+- Row-level isolation prevents one user from reading another user's ciphertext
 
 ### Phase 3 - Secondary Rust Clients
 
@@ -241,9 +243,12 @@ Completed so far:
 - Step 4 hardening done: Added `storage-sqlite` integration/contract coverage for entry CRUD semantics, entry ordering, sync cursor round-trip, default vault stability, and crypto metadata persistence.
 - Step 4 hardening done: Implemented desktop lock timeout enforcement in Tauri backend session handling (5-minute idle timeout).
 - Step 4 hardening done: Implemented explicit password copy action in desktop UI with 30-second clipboard auto-clear timer.
+- Step 4 hardening done: Moved desktop sqlite path out of watched source directories to prevent dev-mode restarts on DB writes.
+- Phase 2 started: Implemented initial `sync-supabase` authenticated RPC adapter for `etui_push_changes` and `etui_pull_changes`.
+- Phase 2 started: Added first `sync-supabase` tests for authenticated push, pull decode, and unauthorized response handling.
 - Validation: `cargo check --workspace`, `cargo test --workspace`, and `bun run build` pass.
 
 Current status:
 
-- Foundation phase is in progress.
-- Next active task: start Phase 2 by implementing `sync-supabase` behind `SyncProvider` and define first sync adapter contract tests.
+- Foundation phase is complete and Phase 2 is in progress.
+- Next active task: add Supabase SQL schema + RLS policies and wire desktop sign-in/session handling so the app provides `SUPABASE_ACCESS_TOKEN` at runtime.

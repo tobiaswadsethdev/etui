@@ -1,6 +1,6 @@
 # etui
 
-`etui` is a local-first, zero-knowledge password manager project.
+`etui` is an authenticated, zero-knowledge password manager project.
 
 Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, with architecture planned for future native iOS (SwiftUI), Android (Kotlin), CLI/TUI, and standalone browser extension clients.
 
@@ -9,7 +9,7 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
 - Rust workspace with core and adapters:
   - `crates/etui-core`
   - `crates/storage-sqlite`
-  - `crates/sync-supabase` (scaffold)
+  - `crates/sync-supabase` (authenticated RPC adapter)
 - Desktop app scaffold and working local flow:
   - `apps/etui-desktop`
   - unlock/lock vault, encrypted entry create/list/get/delete
@@ -19,8 +19,11 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
   - `docs/spec-vault-format.md`
   - `docs/spec-sync-contract.md`
   - `docs/threat-model.md`
+  - `docs/supabase-schema.sql`
 - Storage adapter integration coverage:
   - `crates/storage-sqlite` contract-style tests for CRUD, ordering, cursor persistence, and crypto metadata round-trip
+- Sync adapter coverage:
+  - `crates/sync-supabase` tests for authenticated push/pull request handling
 
 ## Security model
 
@@ -29,6 +32,20 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
 - Encryption: XChaCha20-Poly1305 per encrypted payload.
 - GUI session lock timeout and clipboard auto-clear behavior are enforced.
 - Backend/sync is intended to store ciphertext + minimal metadata only.
+- Supabase Auth is used for user identity and API authorization; auth is separate from encryption keys.
+
+## Sync adapter configuration
+
+`sync-supabase` expects these environment variables:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_ACCESS_TOKEN`
+
+The adapter calls authenticated RPC endpoints:
+
+- `/rest/v1/rpc/etui_push_changes`
+- `/rest/v1/rpc/etui_pull_changes`
 
 ## Repository layout
 

@@ -38,7 +38,7 @@ Out of scope for v1:
 
 1. Credential confidentiality: plaintext secrets never reach backend.
 2. Integrity: tampering with ciphertext or metadata is detected.
-3. Availability: local-first operation works offline.
+3. Availability: authenticated sync remains available; transient network failures are retried with backoff.
 4. Deterministic recovery: clients can converge after reconnect.
 
 ## 6. Threats and mitigations
@@ -97,6 +97,7 @@ Out of scope for v1:
 
 - keylogging on compromised endpoint remains partially unmitigated
 - memory scraping risk reduced but not eliminated
+- sync availability now depends on Supabase uptime and valid auth sessions
 - future hardening:
   - biometric unlock and secure enclave/keystore integration
   - memory zeroization where practical

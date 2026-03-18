@@ -2,19 +2,19 @@
 
 ## 1. Scope
 
-This document defines the local-first sync contract used by all clients and sync providers.
+This document defines the authenticated sync contract used by all clients and sync providers.
 It is backend-agnostic, with a concrete Supabase profile in the appendix.
 
-## 2. Local-first model
+## 2. Authenticated sync model
 
 Core invariants:
 
-- Writes commit to local encrypted storage first.
-- Sync runs asynchronously (push then pull).
+- Every sync request is tied to an authenticated user session.
+- Sync runs as authenticated push then pull.
 - Server stores ciphertext and minimal metadata only.
 - Merge behavior is deterministic.
 
-Expected result: eventual convergence for clients with the same authorized vault.
+Expected result: eventual convergence for clients authenticated as the same user/vault scope.
 
 ## 3. Entities
 
@@ -22,6 +22,7 @@ Expected result: eventual convergence for clients with the same authorized vault
 - `device_id`: UUID for client instance
 - `change_id`: UUID idempotency key per change
 - `cursor`: opaque server-issued token for incremental pulls
+- `user_id`: authenticated Supabase user (`auth.uid()`)
 
 ## 4. Change record envelope
 
@@ -141,12 +142,14 @@ Retry guidance:
 - Server never receives master password or plaintext credential data.
 - Transport requires TLS.
 - Logs must redact ciphertext payload fields by default.
+- Backend authorization is enforced by RLS policies keyed on `auth.uid()`.
 
 ## 9. Supabase profile (appendix)
 
 Suggested tables:
 
 - `vault_changes`
+  - `user_id` UUID NOT NULL
   - `vault_id` UUID
   - `change_id` UUID (unique)
   - `entry_id` UUID
@@ -160,11 +163,11 @@ Suggested tables:
 
 Indexes:
 
-- unique `(vault_id, change_id)`
-- `(vault_id, server_seq)` for pull pagination
-- `(vault_id, entry_id)` for merge materialization queries
+- unique `(user_id, vault_id, change_id)`
+- `(user_id, vault_id, server_seq)` for pull pagination
+- `(user_id, vault_id, entry_id)` for merge materialization queries
 
 RLS expectations:
 
-- authenticated user must be explicitly mapped to permitted `vault_id`
 - deny all by default, grant least privilege
+- insert/select/update/delete allowed only when `auth.uid() = user_id`
