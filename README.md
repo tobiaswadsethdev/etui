@@ -12,16 +12,22 @@ Current focus is a cross-platform desktop app (Tauri) backed by a Rust core, wit
   - `crates/sync-supabase` (scaffold)
 - Desktop app scaffold and working local flow:
   - `apps/desktop-tauri`
+  - unlock/lock vault, encrypted entry create/list/get/delete
+  - backend-enforced idle lock timeout (5 minutes)
+  - explicit password copy action with clipboard auto-clear timer (30 seconds)
 - Initial specs and threat model:
   - `docs/spec-vault-format.md`
   - `docs/spec-sync-contract.md`
   - `docs/threat-model.md`
+- Storage adapter integration coverage:
+  - `crates/storage-sqlite` contract-style tests for CRUD, ordering, cursor persistence, and crypto metadata round-trip
 
 ## Security model
 
 - Master password never leaves the device.
 - KDF: Argon2id (per-vault salt + stored params).
 - Encryption: XChaCha20-Poly1305 per encrypted payload.
+- GUI session lock timeout and clipboard auto-clear behavior are enforced.
 - Backend/sync is intended to store ciphertext + minimal metadata only.
 
 ## Repository layout

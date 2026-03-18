@@ -238,8 +238,12 @@ Completed so far:
 - Step 4 enhancement done: Added persistent vault crypto metadata storage in SQLite with password verifier.
 - Step 4 enhancement done: Updated desktop UI from base64 payload input to real credential fields (title, username, password, notes).
 - Validation: `cargo check --workspace`, `cargo test -p vault-core` (5 tests), and `bun run build` pass.
+- Step 4 hardening done: Added `storage-sqlite` integration/contract coverage for entry CRUD semantics, entry ordering, sync cursor round-trip, default vault stability, and crypto metadata persistence.
+- Step 4 hardening done: Implemented desktop lock timeout enforcement in Tauri backend session handling (5-minute idle timeout).
+- Step 4 hardening done: Implemented explicit password copy action in desktop UI with 30-second clipboard auto-clear timer.
+- Validation: `cargo check --workspace`, `cargo test --workspace`, and `bun run build` pass.
 
 Current status:
 
 - Foundation phase is in progress.
-- Next active task: add contract/integration tests for `storage-sqlite` and implement lock timeout + clipboard clear behavior in desktop UI.
+- Next active task: start Phase 2 by implementing `sync-supabase` behind `SyncProvider` and define first sync adapter contract tests.

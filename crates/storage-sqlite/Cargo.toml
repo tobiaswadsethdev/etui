@@ -12,5 +12,9 @@ rusqlite = { version = "0.33", features = ["bundled"] }
 uuid.workspace = true
 vault-core = { path = "../vault-core" }
 
+[dev-dependencies]
+tempfile = "3.13"
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+
 [lints]
 workspace = true

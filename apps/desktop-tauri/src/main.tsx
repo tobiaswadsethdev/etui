@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import "./styles.css";
@@ -38,6 +38,8 @@ const EMPTY_ENTRY: NewEntryInput = {
   notes: "",
 };
 
+const CLIPBOARD_CLEAR_MS = 30_000;
+
 function App() {
   const [masterPassword, setMasterPassword] = useState("");
   const [session, setSession] = useState<SessionInfo | null>(null);
@@ -46,6 +48,41 @@ function App() {
   const [newEntry, setNewEntry] = useState<NewEntryInput>(EMPTY_ENTRY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copyNotice, setCopyNotice] = useState<string | null>(null);
+  const clipboardClearTimer = useRef<number | null>(null);
+
+  function clearClipboardTimer() {
+    if (clipboardClearTimer.current !== null) {
+      window.clearTimeout(clipboardClearTimer.current);
+      clipboardClearTimer.current = null;
+    }
+  }
+
+  function resetSessionState(nextError: string | null = null) {
+    setSession(null);
+    setEntries([]);
+    setSelectedEntry(null);
+    setNewEntry(EMPTY_ENTRY);
+    setMasterPassword("");
+    setCopyNotice(null);
+    clearClipboardTimer();
+    setError(nextError);
+  }
+
+  function handleCommandError(operationError: unknown) {
+    const message = String(operationError);
+    if (message.includes("vault is locked")) {
+      resetSessionState("Session timed out. Unlock again.");
+      return;
+    }
+    setError(message);
+  }
+
+  useEffect(() => {
+    return () => {
+      clearClipboardTimer();
+    };
+  }, []);
 
   const entryCountText = useMemo(() => {
     if (!session) {
@@ -70,9 +107,11 @@ function App() {
     try {
       const unlocked = await invoke<SessionInfo>("unlock_vault", { masterPassword });
       setSession(unlocked);
+      setMasterPassword("");
+      setCopyNotice(null);
       await refreshEntries();
     } catch (unlockError) {
-      setError(String(unlockError));
+      handleCommandError(unlockError);
     } finally {
       setBusy(false);
     }
@@ -84,12 +123,9 @@ function App() {
 
     try {
       await invoke("lock_vault");
-      setSession(null);
-      setEntries([]);
-      setSelectedEntry(null);
-      setNewEntry(EMPTY_ENTRY);
+      resetSessionState(null);
     } catch (lockError) {
-      setError(String(lockError));
+      handleCommandError(lockError);
     } finally {
       setBusy(false);
     }
@@ -105,7 +141,7 @@ function App() {
       setNewEntry(EMPTY_ENTRY);
       await refreshEntries();
     } catch (createError) {
-      setError(String(createError));
+      handleCommandError(createError);
     } finally {
       setBusy(false);
     }
@@ -118,8 +154,9 @@ function App() {
     try {
       const detail = await invoke<EntryDetail | null>("get_entry", { entryId });
       setSelectedEntry(detail);
+      setCopyNotice(null);
     } catch (loadError) {
-      setError(String(loadError));
+      handleCommandError(loadError);
     } finally {
       setBusy(false);
     }
@@ -136,9 +173,50 @@ function App() {
       }
       await refreshEntries();
     } catch (deleteError) {
-      setError(String(deleteError));
+      handleCommandError(deleteError);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleCopyPassword() {
+    if (!selectedEntry) {
+      return;
+    }
+
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(selectedEntry.password);
+      setCopyNotice("Password copied. Clipboard will be cleared in 30 seconds.");
+      clearClipboardTimer();
+
+      const copiedPassword = selectedEntry.password;
+      clipboardClearTimer.current = window.setTimeout(() => {
+        void clearClipboardIfUnchanged(copiedPassword);
+      }, CLIPBOARD_CLEAR_MS);
+    } catch (copyError) {
+      handleCommandError(copyError);
+    }
+  }
+
+  async function clearClipboardIfUnchanged(copiedPassword: string) {
+    let shouldClear = true;
+    try {
+      const currentClipboard = await navigator.clipboard.readText();
+      shouldClear = currentClipboard === copiedPassword;
+    } catch {
+      shouldClear = true;
+    }
+
+    if (!shouldClear) {
+      setCopyNotice(null);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText("");
+    } finally {
+      setCopyNotice(null);
     }
   }
 
@@ -295,7 +373,13 @@ function App() {
                 <strong>Updated:</strong> {new Date(selectedEntry.updatedAt).toLocaleString()}
               </p>
               <label className="field-label">Password</label>
-              <input className="text-input" type="text" readOnly value={selectedEntry.password} />
+              <div className="password-row">
+                <input className="text-input" type="password" readOnly value={selectedEntry.password} />
+                <button className="ghost-btn" type="button" onClick={handleCopyPassword}>
+                  Copy
+                </button>
+              </div>
+              {copyNotice ? <p className="info-text">{copyNotice}</p> : null}
               <label className="field-label">Notes</label>
               <textarea className="text-area" rows={5} readOnly value={selectedEntry.notes} />
             </div>

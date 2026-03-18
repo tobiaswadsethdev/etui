@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, SystemTime};
 
 use serde::Serialize;
 use storage_sqlite::SqliteVaultRepository;
@@ -11,11 +12,19 @@ use vault_core::crypto::{initialize_crypto_metadata, unlock_with_password, Unloc
 use vault_core::model::EntryPayload;
 use vault_core::service::VaultService;
 
+const LOCK_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+
+#[derive(Clone, Default)]
+struct SessionState {
+    unlocked: Option<UnlockedVault>,
+    last_activity: Option<SystemTime>,
+}
+
 struct AppState {
     repository: Arc<SqliteVaultRepository>,
     service: VaultService<Arc<SqliteVaultRepository>>,
     vault_id: Uuid,
-    session: Mutex<Option<UnlockedVault>>,
+    session: Mutex<SessionState>,
 }
 
 #[derive(Debug, Serialize)]
@@ -87,7 +96,10 @@ async fn unlock_vault(
             .session
             .lock()
             .map_err(|_| "failed to acquire session lock".to_owned())?;
-        *session = Some(unlocked);
+        *session = SessionState {
+            unlocked: Some(unlocked),
+            last_activity: Some(SystemTime::now()),
+        };
     }
 
     let entries = state
@@ -108,7 +120,7 @@ async fn lock_vault(state: State<'_, AppState>) -> Result<(), String> {
         .session
         .lock()
         .map_err(|_| "failed to acquire session lock".to_owned())?;
-    *session = None;
+    *session = SessionState::default();
     Ok(())
 }
 
@@ -227,11 +239,34 @@ async fn delete_entry(state: State<'_, AppState>, entry_id: String) -> Result<()
 }
 
 fn require_unlocked(state: &State<'_, AppState>) -> Result<UnlockedVault, String> {
-    let session = state
+    let mut session = state
         .session
         .lock()
         .map_err(|_| "failed to acquire session lock".to_owned())?;
-    session.clone().ok_or_else(|| "vault is locked".to_owned())
+    let unlocked = session
+        .unlocked
+        .clone()
+        .ok_or_else(|| "vault is locked".to_owned())?;
+
+    let now = SystemTime::now();
+    if session
+        .last_activity
+        .map(|last_activity| has_timed_out(last_activity, now, LOCK_TIMEOUT))
+        .unwrap_or(false)
+    {
+        *session = SessionState::default();
+        return Err("vault is locked".to_owned());
+    }
+
+    session.last_activity = Some(now);
+    Ok(unlocked)
+}
+
+fn has_timed_out(last_activity: SystemTime, now: SystemTime, timeout: Duration) -> bool {
+    match now.duration_since(last_activity) {
+        Ok(idle_for) => idle_for >= timeout,
+        Err(_) => false,
+    }
 }
 
 fn database_path() -> anyhow::Result<PathBuf> {
@@ -252,7 +287,7 @@ fn main() {
         service: VaultService::new(Arc::clone(&repository)),
         repository,
         vault_id,
-        session: Mutex::new(None),
+        session: Mutex::new(SessionState::default()),
     };
 
     tauri::Builder::default()
@@ -267,4 +302,28 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_timed_out;
+    use std::time::{Duration, SystemTime};
+
+    #[test]
+    fn timeout_is_triggered_when_idle_reaches_threshold() {
+        let base = SystemTime::UNIX_EPOCH;
+        let timeout = Duration::from_secs(300);
+        let now = base + timeout;
+
+        assert!(has_timed_out(base, now, timeout));
+    }
+
+    #[test]
+    fn timeout_is_not_triggered_for_shorter_idle_period() {
+        let base = SystemTime::UNIX_EPOCH;
+        let timeout = Duration::from_secs(300);
+        let now = base + Duration::from_secs(299);
+
+        assert!(!has_timed_out(base, now, timeout));
+    }
 }

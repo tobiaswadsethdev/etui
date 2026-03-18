@@ -382,3 +382,167 @@ impl VaultRepository for SqliteVaultRepository {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use tempfile::TempDir;
+    use tokio::time::{sleep, Duration};
+    use vault_core::crypto::initialize_crypto_metadata;
+    use vault_core::ports::VaultRepository;
+    use vault_core::sync::SyncCursor;
+
+    use super::SqliteVaultRepository;
+
+    fn test_db_path() -> anyhow::Result<(TempDir, PathBuf)> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().join("vault.sqlite3");
+        Ok((dir, path))
+    }
+
+    #[tokio::test]
+    async fn repository_contract_entry_crud_and_listing() {
+        let (_temp_dir, db_path) = test_db_path().expect("temp path is created");
+        let repository = SqliteVaultRepository::new(&db_path).expect("repository initializes");
+        let vault_id = repository
+            .ensure_default_vault()
+            .expect("default vault is created");
+
+        let created = repository
+            .upsert_entry(
+                vault_id,
+                vault_core::ports::NewEntry {
+                    ciphertext: vec![1, 2, 3],
+                    nonce: [11; 24],
+                },
+            )
+            .await
+            .expect("entry is created");
+
+        sleep(Duration::from_millis(2)).await;
+
+        let newer = repository
+            .upsert_entry(
+                vault_id,
+                vault_core::ports::NewEntry {
+                    ciphertext: vec![4, 5, 6],
+                    nonce: [22; 24],
+                },
+            )
+            .await
+            .expect("second entry is created");
+
+        let loaded = repository
+            .get_entry(vault_id, created.id)
+            .await
+            .expect("entry lookup succeeds")
+            .expect("entry exists");
+        assert_eq!(loaded.ciphertext, vec![1, 2, 3]);
+        assert_eq!(loaded.nonce, [11; 24]);
+
+        let listed = repository
+            .list_entries(vault_id)
+            .await
+            .expect("listing succeeds");
+        assert_eq!(listed.len(), 2);
+        assert_eq!(listed[0].id, newer.id);
+        assert_eq!(listed[1].id, created.id);
+
+        repository
+            .delete_entry(vault_id, created.id)
+            .await
+            .expect("delete succeeds");
+
+        let deleted = repository
+            .get_entry(vault_id, created.id)
+            .await
+            .expect("entry lookup succeeds");
+        assert!(deleted.is_none());
+    }
+
+    #[tokio::test]
+    async fn repository_contract_sync_cursor_roundtrip() {
+        let (_temp_dir, db_path) = test_db_path().expect("temp path is created");
+        let repository = SqliteVaultRepository::new(&db_path).expect("repository initializes");
+        let vault_id = repository
+            .ensure_default_vault()
+            .expect("default vault is created");
+
+        let initial = repository
+            .get_sync_cursor(vault_id)
+            .await
+            .expect("cursor lookup succeeds");
+        assert!(initial.is_none());
+
+        let cursor = SyncCursor("cursor-v1".to_owned());
+        repository
+            .set_sync_cursor(vault_id, cursor.clone())
+            .await
+            .expect("cursor is persisted");
+
+        let loaded = repository
+            .get_sync_cursor(vault_id)
+            .await
+            .expect("cursor lookup succeeds");
+        assert_eq!(loaded, Some(cursor));
+    }
+
+    #[tokio::test]
+    async fn default_vault_is_stable_across_calls() {
+        let (_temp_dir, db_path) = test_db_path().expect("temp path is created");
+        let repository = SqliteVaultRepository::new(&db_path).expect("repository initializes");
+
+        let first = repository
+            .ensure_default_vault()
+            .expect("default vault exists");
+        let second = repository
+            .ensure_default_vault()
+            .expect("default vault exists");
+
+        assert_eq!(first, second);
+    }
+
+    #[tokio::test]
+    async fn crypto_metadata_roundtrip() {
+        let (_temp_dir, db_path) = test_db_path().expect("temp path is created");
+        let repository = SqliteVaultRepository::new(&db_path).expect("repository initializes");
+        let vault_id = repository
+            .ensure_default_vault()
+            .expect("default vault is created");
+
+        let (metadata, _) =
+            initialize_crypto_metadata("test-master-password").expect("metadata initializes");
+
+        repository
+            .save_crypto_metadata(vault_id, &metadata)
+            .expect("metadata saves");
+
+        let loaded = repository
+            .load_crypto_metadata(vault_id)
+            .expect("metadata loads")
+            .expect("metadata exists");
+
+        assert_eq!(loaded.kdf.memory_kib, metadata.kdf.memory_kib);
+        assert_eq!(loaded.kdf.iterations, metadata.kdf.iterations);
+        assert_eq!(loaded.kdf.parallelism, metadata.kdf.parallelism);
+        assert_eq!(loaded.salt, metadata.salt);
+        assert_eq!(loaded.verifier_nonce, metadata.verifier_nonce);
+        assert_eq!(loaded.verifier_ciphertext, metadata.verifier_ciphertext);
+    }
+
+    #[tokio::test]
+    async fn crypto_metadata_is_absent_before_save() {
+        let (_temp_dir, db_path) = test_db_path().expect("temp path is created");
+        let repository = SqliteVaultRepository::new(&db_path).expect("repository initializes");
+        let vault_id = repository
+            .ensure_default_vault()
+            .expect("default vault is created");
+
+        let loaded = repository
+            .load_crypto_metadata(vault_id)
+            .expect("metadata lookup succeeds");
+
+        assert!(loaded.is_none());
+    }
+}

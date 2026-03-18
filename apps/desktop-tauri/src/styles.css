@@ -167,6 +167,19 @@ p {
   margin-top: 0.6rem;
 }
 
+.password-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.info-text {
+  margin-top: 0.2rem;
+  color: #0f172a;
+  font-size: 0.85rem;
+}
+
 .error-text {
   margin-top: 0.7rem;
   color: #b91c1c;
@@ -191,5 +204,9 @@ button:disabled {
   .entry-item {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .password-row {
+    grid-template-columns: 1fr;
   }
 }
