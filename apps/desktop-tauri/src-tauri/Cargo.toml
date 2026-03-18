@@ -15,5 +15,7 @@ storage-sqlite = { path = "../../../crates/storage-sqlite" }
 uuid.workspace = true
 vault-core = { path = "../../../crates/vault-core" }
 
+[package.metadata.tauri]
+
 [lints]
 workspace = true
