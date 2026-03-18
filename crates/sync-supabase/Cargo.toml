@@ -1,0 +1,12 @@
+[package]
+name = "sync-supabase"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+vault-core = { path = "../vault-core" }
+
+[lints]
+workspace = true
