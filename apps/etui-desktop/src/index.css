@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: light;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top left, #f8fafc, #e5e7eb 48%, #d1d5db);
+    color: #0f172a;
+  }
+}
